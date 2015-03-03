@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 # __author__ = 'nicklee'
-#
+# List listening ports(with process name) & running services
 
 import json, base64, sys, argparse
 
