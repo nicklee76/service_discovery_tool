@@ -90,10 +90,40 @@ def get_id_using_name(list, name):
 
 
 def get_value_using_key(list, key):
-    value_list = []
+    key_value_dict = {}
     for each in list:
-        value_list.append(each[key])
-    return value_list
+        print each[key]
+        key_value_dict[each[key]] = {'server_name': each['server_label'],
+                                     'interfaces': each['interfaces'],
+                                     'OS': each['kernel_name']
+                                     }
+    return key_value_dict
+
+
+def get_running_processes(servers):
+    # GET https://api.cloudpassage.com/v1/servers/{server_id}/processes
+    servers_running_processes = {}
+    running_processes=[]
+    for each in servers.keys():
+        print('inside get_running_processes. each: %s' % each)
+        processes = halo_api_call('GET', api_url + '/servers/' + each +'/processes', data = None, headers = headers)
+        servers[each]['running_processes'] = processes.json()['processes']
+    return servers
+
+
+def get_listening_ports(servers):
+    server_and_request_ids = {}
+    for each in servers.keys():
+        #POST https://api.cloudpassage.com/v1/servers/{server_id}/scans
+        request_body = {'scan': {'module':'sca'}}
+        reply = halo_api_call('POST', api_url +'/servers/' + each + '/scans', data = json.dumps(request_body), headers = headers)
+        #print json.dumps(reply.json(), indent = 2, sort_keys = True)
+        server_and_request_ids[each] = reply.json()['command']['id']
+    #print ('Server_and_requests_IDs - %s' %server_and_request_ids)
+    scan_complete = False
+    while not scan_complete:
+
+    return server_and_request_ids
 
 
 ######################################################################################################################
@@ -115,8 +145,17 @@ print server_group_id
 servers = halo_api_call('GET', api_url + '/groups/' + server_group_id + '/servers', data = None, headers = headers)
 print json.dumps(servers.json(), indent = 2, sort_keys = True)
 
-list_of_server_ids = get_value_using_key(servers.json()['servers'], 'id')
-print list_of_server_ids
+# servers_information = { server_id :{'server_name': xxxx}, 'interfaces':[{...}], 'OS': 'Linux'}
+servers_information = get_value_using_key(servers.json()['servers'], 'id')
+print servers_information
+
+# servers_information = { server_id :{'server_name': xxxx, 'interfaces':[{...}], 'OS': 'Linux', 'running_processes': [{}]}}
+servers_information = get_running_processes(servers_information)
+print servers_information
+
+# Get listening ports
+servers_information = get_listening_ports(servers_information)
+print servers_information
 
 
 
