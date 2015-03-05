@@ -33,7 +33,7 @@ api_url = halo_api_url+halo_api_version
 current_directory=os.path.dirname(os.path.abspath(__file__))
 log_directory=current_directory + '/logs/'
 
-server_group_name = 'INSTRUCTURE-Web'
+server_group_name = 'Service_Discovery'
 
 
 def log_events(log_file, log_level, event_time, event):
@@ -92,7 +92,12 @@ def get_id_using_name(list, name):
 def get_value_using_key(list, key):
     key_value_dict = {}
     for each in list:
-        key_value_dict[each[key]] = {'server_name': each['server_label'],
+        if each['server_label'] is None:
+            # server_label was not used.  Using the server ID (HALO record) instead.
+            server_name = each['hostname']
+        else:
+            server_name = each['server_label']
+        key_value_dict[each[key]] = {'server_name': server_name,
                                      'interfaces': each['interfaces'],
                                      'OS': each['kernel_name'],
                                      'running_processes': {},
@@ -136,6 +141,7 @@ def get_listening_ports(servers):
                 reply = halo_api_call('GET', api_url + '/servers/' + each + '/sca', data = None, headers = headers)
                 #print json.dumps(reply.json(), indent = 2, sort_keys = True)
                 servers[each]['listening_ports'] = reply.json()['scan']['findings']
+            time.sleep(5)
     return servers
 
 
@@ -167,5 +173,39 @@ servers_information = get_running_processes(servers_information)
 
 # Get listening ports
 servers_information = get_listening_ports(servers_information)
-print json.dumps(servers_information, indent = 2, sort_keys = True)
+#print json.dumps(servers_information, indent = 2, sort_keys = True)
+
+print('\n')
+print('===============================================================================================================')
+print('{0:50}{1:15}').format('Server','Listening')
+print('{0:40}{1:10}{2:15}{3:20}').format('Label', 'OS', 'Ports', 'Process')
+print('---------------------------------------------------------------------------------------------------------------')
+for server in servers_information.keys():
+    listening_ports = {}
+    running_process = []
+    for each in servers_information[server]['listening_ports']:
+        #print('======== Listening Ports (%s)===================================================', % server)
+        #print json.dumps(each['details'], indent = 2, sort_keys = True)
+        for port in each['details']:
+            if port['actual'] is not None:
+                listening_ports[port['actual']] = port['bound_process']
+                if port['bound_process'] not in running_process:
+                    running_process.append(port['bound_process'])
+                else:
+                    running_process.remove(port['bound_process'])
+    #print listening_ports
+    for each in listening_ports.keys():
+        print('{0:40}{1:10}{2:15}{3:20}').format(servers_information[server]['server_name'], servers_information[server]['OS'], each, listening_ports[each])
+
+    #print('======== Running Processes (%s) =================================================', % server)
+    for each in servers_information[server]['running_processes']:
+        #print json.dumps(each, indent = 2, sort_keys = True)
+        if each['process_name'] not in running_process:
+            running_process.append(each['process_name'])
+    #print running_process
+    for each in running_process:
+        print('{0:40}{1:10}{2:15}{3:20}').format(servers_information[server]['server_name'], servers_information[server]['OS'], 'N/A', each)
+
+    print('-----------------------------------------------------------------------------------------------------------')
+
 
