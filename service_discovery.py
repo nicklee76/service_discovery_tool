@@ -92,7 +92,6 @@ def get_id_using_name(list, name):
 def get_value_using_key(list, key):
     key_value_dict = {}
     for each in list:
-        print each[key]
         key_value_dict[each[key]] = {'server_name': each['server_label'],
                                      'interfaces': each['interfaces'],
                                      'OS': each['kernel_name'],
@@ -107,7 +106,6 @@ def get_running_processes(servers):
     servers_running_processes = {}
     running_processes=[]
     for each in servers.keys():
-        print('inside get_running_processes. each: %s' % each)
         processes = halo_api_call('GET', api_url + '/servers/' + each +'/processes', data = None, headers = headers)
         servers[each]['running_processes'] = processes.json()['processes']
     return servers
@@ -136,7 +134,7 @@ def get_listening_ports(servers):
                 scan_status = 'completed'
                 #GET https://api.cloudpassage.com/v1/servers/{server_id}/sca
                 reply = halo_api_call('GET', api_url + '/servers/' + each + '/sca', data = None, headers = headers)
-                print json.dumps(reply.json(), indent = 2, sort_keys = True)
+                #print json.dumps(reply.json(), indent = 2, sort_keys = True)
                 servers[each]['listening_ports'] = reply.json()['scan']['findings']
     return servers
 
@@ -170,8 +168,4 @@ servers_information = get_running_processes(servers_information)
 # Get listening ports
 servers_information = get_listening_ports(servers_information)
 print json.dumps(servers_information, indent = 2, sort_keys = True)
-
-
-
-
 
