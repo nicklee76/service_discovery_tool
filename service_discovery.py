@@ -3,7 +3,7 @@
 # __author__ = 'nicklee'
 # List listening ports(with process name) & running services
 
-import json, base64, sys, argparse, os
+import json, base64, sys, argparse, os, time
 from datetime import datetime
 
 try:
@@ -33,7 +33,7 @@ api_url = halo_api_url+halo_api_version
 current_directory=os.path.dirname(os.path.abspath(__file__))
 log_directory=current_directory + '/logs/'
 
-server_group_name = 'NetworkAnalysis'
+server_group_name = 'INSTRUCTURE-Web'
 
 
 def log_events(log_file, log_level, event_time, event):
@@ -95,7 +95,9 @@ def get_value_using_key(list, key):
         print each[key]
         key_value_dict[each[key]] = {'server_name': each['server_label'],
                                      'interfaces': each['interfaces'],
-                                     'OS': each['kernel_name']
+                                     'OS': each['kernel_name'],
+                                     'running_processes': {},
+                                     'listening_ports': {}
                                      }
     return key_value_dict
 
@@ -113,6 +115,7 @@ def get_running_processes(servers):
 
 def get_listening_ports(servers):
     server_and_request_ids = {}
+
     for each in servers.keys():
         #POST https://api.cloudpassage.com/v1/servers/{server_id}/scans
         request_body = {'scan': {'module':'sca'}}
@@ -120,10 +123,22 @@ def get_listening_ports(servers):
         #print json.dumps(reply.json(), indent = 2, sort_keys = True)
         server_and_request_ids[each] = reply.json()['command']['id']
     #print ('Server_and_requests_IDs - %s' %server_and_request_ids)
-    scan_complete = False
-    while not scan_complete:
 
-    return server_and_request_ids
+    for each in server_and_request_ids.keys():
+        #GET https://api.cloudpassage.com/v1/servers/{server_id}/commands/{id}
+        scan_status = 'not_completed'
+        while scan_status is not 'completed':
+            reply = halo_api_call('GET', api_url + '/servers/' + each + '/commands/' + server_and_request_ids[each],
+                                  data = None, headers=headers)
+            #print json.dumps(reply.json(), indent = 2, sort_keys = True)
+            if reply.json()['command']['status'] == 'completed':
+                #time.sleep(5)
+                scan_status = 'completed'
+                #GET https://api.cloudpassage.com/v1/servers/{server_id}/sca
+                reply = halo_api_call('GET', api_url + '/servers/' + each + '/sca', data = None, headers = headers)
+                print json.dumps(reply.json(), indent = 2, sort_keys = True)
+                servers[each]['listening_ports'] = reply.json()['scan']['findings']
+    return servers
 
 
 ######################################################################################################################
@@ -134,28 +149,29 @@ headers = get_headers()
 
 # list server groups
 # GET https://api.cloudpassage.com/v1/groups
-
 server_groups = halo_api_call('GET', api_url+'/groups', data = None, headers = headers)
 #print json.dumps(reply.json(), indent = 2, sort_keys = True)
 
 server_group_id = get_id_using_name(server_groups.json()['groups'], server_group_name)
-print server_group_id
+#print server_group_id
 
 # GET https://api.cloudpassage.com/v1/groups/{group_id}/servers
 servers = halo_api_call('GET', api_url + '/groups/' + server_group_id + '/servers', data = None, headers = headers)
-print json.dumps(servers.json(), indent = 2, sort_keys = True)
+#print json.dumps(servers.json(), indent = 2, sort_keys = True)
 
 # servers_information = { server_id :{'server_name': xxxx}, 'interfaces':[{...}], 'OS': 'Linux'}
 servers_information = get_value_using_key(servers.json()['servers'], 'id')
-print servers_information
+#print servers_information
 
 # servers_information = { server_id :{'server_name': xxxx, 'interfaces':[{...}], 'OS': 'Linux', 'running_processes': [{}]}}
 servers_information = get_running_processes(servers_information)
-print servers_information
+#print servers_information
 
 # Get listening ports
 servers_information = get_listening_ports(servers_information)
-print servers_information
+print json.dumps(servers_information, indent = 2, sort_keys = True)
+
+
 
 
 
