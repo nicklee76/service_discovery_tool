@@ -1,7 +1,20 @@
 #!/usr/bin/env python
 
 # __author__ = 'nicklee'
-# List listening ports(with process name) & running services
+
+# http://www.cloudpassage.com
+#
+# Description: List listening ports(with process name) & running services for each workload
+#
+# Requirements: This script requires following in order for this script to work
+#   Packages:       requests
+#   File(s):        Configuration file called "config.json" file under the '/config' directory (or
+#                   use command line argument - refer to below)
+#
+# Command line / Terminal arguments: The script would take 2 arguments from the terminal / command line.
+#   --debug         Optional (default = False).  Enable debug mode for more information on what is happening.
+#   --config_file   Optional (default = './config/config.json').  HALO and other related information to run the scripts
+
 
 import json, base64, sys, argparse, os, time
 from datetime import datetime
@@ -17,9 +30,13 @@ parser.add_argument('--debug', '-d', action='store_true', default=False,
                     help='[CoOlNiCk] Enable debug mode')
 parser.add_argument('--config_file', '-c', action='store', default='./config/config.json',
                     help='[CoOlNiCk] Name of the input file.  Default is [./config/config.json]')
+parser.add_argument('--server_group', '-s', action='store', default='Service_Discovery',
+                    help='[CoOlNiCk] Name of the HALO server group to use.  Default is [Service_Discovery]')
 args = parser.parse_args()
 
 config = json.loads(open(args.config_file, "r").read())
+
+server_group_name = args.server_group
 
 ####### HALO API parameters #######
 api_key_id = config['HALO']['APIKeyID']
@@ -32,8 +49,6 @@ api_url = halo_api_url+halo_api_version
 
 current_directory=os.path.dirname(os.path.abspath(__file__))
 log_directory=current_directory + '/logs/'
-
-server_group_name = 'Service_Discovery'
 
 
 def log_events(log_file, log_level, event_time, event):
@@ -101,7 +116,8 @@ def get_value_using_key(list, key):
                                      'interfaces': each['interfaces'],
                                      'OS': each['kernel_name'],
                                      'running_processes': {},
-                                     'listening_ports': {}
+                                     'listening_ports': {},
+                                     'server_ID': each['id']
                                      }
     return key_value_dict
 
@@ -177,8 +193,8 @@ servers_information = get_listening_ports(servers_information)
 
 print('\n')
 print('===============================================================================================================')
-print('{0:50}{1:15}').format('Server','Listening')
-print('{0:40}{1:10}{2:15}{3:20}').format('Label', 'OS', 'Ports', 'Process')
+print('{0:75}{1:15}{2:20}').format('Server','Listening', 'Running')
+print('{0:25}{1:40}{2:10}{3:15}{4:20}').format('Label', 'Server ID', 'OS', 'Ports', 'Process')
 print('---------------------------------------------------------------------------------------------------------------')
 for server in servers_information.keys():
     listening_ports = {}
@@ -195,7 +211,11 @@ for server in servers_information.keys():
                     running_process.remove(port['bound_process'])
     #print listening_ports
     for each in listening_ports.keys():
-        print('{0:40}{1:10}{2:15}{3:20}').format(servers_information[server]['server_name'], servers_information[server]['OS'], each, listening_ports[each])
+        print('{0:25}{1:40}{2:10}{3:15}{4:20}').format(servers_information[server]['server_name'],
+                                                       servers_information[server]['server_ID'],
+                                                       servers_information[server]['OS'],
+                                                       each,
+                                                       listening_ports[each])
 
     #print('======== Running Processes (%s) =================================================', % server)
     for each in servers_information[server]['running_processes']:
@@ -204,8 +224,12 @@ for server in servers_information.keys():
             running_process.append(each['process_name'])
     #print running_process
     for each in running_process:
-        print('{0:40}{1:10}{2:15}{3:20}').format(servers_information[server]['server_name'], servers_information[server]['OS'], 'N/A', each)
+        print('{0:25}{1:40}{2:10}{3:15}{4:20}').format(servers_information[server]['server_name'],
+                                                       servers_information[server]['server_ID'],
+                                                       servers_information[server]['OS'],
+                                                       'N/A',
+                                                       each)
 
     print('-----------------------------------------------------------------------------------------------------------')
 
-
+print('[CoOlNiCk] - DONE')
