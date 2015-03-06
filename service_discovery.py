@@ -14,6 +14,7 @@
 # Command line / Terminal arguments: The script would take 2 arguments from the terminal / command line.
 #   --debug         Optional (default = False).  Enable debug mode for more information on what is happening.
 #   --config_file   Optional (default = './config/config.json').  HALO and other related information to run the scripts
+#   --server_group  Optional (default = 'Service_Discovery'.  Name of the HALO server group to use
 
 
 import json, base64, sys, argparse, os, time
@@ -95,6 +96,8 @@ def halo_api_call(method, url, **kwargs):
 
 
 def get_id_using_name(list, name):
+    log_events(log_directory + 'script_logs.log', 'DEBUG', str(datetime.now()),
+               'get_id_using_name(%s, %s)' % (list, name))
     for item in list:
         if item["name"] == name:
             if item["id"] == None:
@@ -105,6 +108,8 @@ def get_id_using_name(list, name):
 
 
 def get_value_using_key(list, key):
+    log_events(log_directory + 'script_logs.log', 'DEBUG', str(datetime.now()),
+               'get_value_using_key(%s, %s)' % (list, key))
     key_value_dict = {}
     for each in list:
         if each['server_label'] is None:
@@ -124,8 +129,8 @@ def get_value_using_key(list, key):
 
 def get_running_processes(servers):
     # GET https://api.cloudpassage.com/v1/servers/{server_id}/processes
-    servers_running_processes = {}
-    running_processes=[]
+    log_events(log_directory + 'script_logs.log', 'DEBUG', str(datetime.now()),
+               'get_running_process(%s)' % servers)
     for each in servers.keys():
         processes = halo_api_call('GET', api_url + '/servers/' + each +'/processes', data = None, headers = headers)
         servers[each]['running_processes'] = processes.json()['processes']
@@ -133,6 +138,8 @@ def get_running_processes(servers):
 
 
 def get_listening_ports(servers):
+    log_events(log_directory + 'script_logs.log', 'DEBUG', str(datetime.now()),
+               'get_listening_ports(\n%s\n)' % json.dumps(servers, indent = 2, sort_keys = True))
     server_and_request_ids = {}
 
     for each in servers.keys():
@@ -170,25 +177,37 @@ headers = get_headers()
 # list server groups
 # GET https://api.cloudpassage.com/v1/groups
 server_groups = halo_api_call('GET', api_url+'/groups', data = None, headers = headers)
+log_events(log_directory + 'script_logs.log', 'DEBUG', str(datetime.now()),
+           'server_groups\n%s' % json.dumps(server_groups.json(), indent = 2, sort_keys = True))
 #print json.dumps(reply.json(), indent = 2, sort_keys = True)
 
 server_group_id = get_id_using_name(server_groups.json()['groups'], server_group_name)
+log_events(log_directory + 'script_logs.log', 'DEBUG', str(datetime.now()),
+           'server_group_id - %s' % server_group_id)
 #print server_group_id
 
 # GET https://api.cloudpassage.com/v1/groups/{group_id}/servers
 servers = halo_api_call('GET', api_url + '/groups/' + server_group_id + '/servers', data = None, headers = headers)
+log_events(log_directory + 'script_logs.log', 'DEBUG', str(datetime.now()),
+           'servers - %s' % servers)
 #print json.dumps(servers.json(), indent = 2, sort_keys = True)
 
 # servers_information = { server_id :{'server_name': xxxx}, 'interfaces':[{...}], 'OS': 'Linux'}
 servers_information = get_value_using_key(servers.json()['servers'], 'id')
+log_events(log_directory + 'script_logs.log', 'DEBUG', str(datetime.now()),
+           'servers_information\n\t%s' % json.dumps(servers_information, indent = 2, sort_keys = True))
 #print servers_information
 
 # servers_information = { server_id :{'server_name': xxxx, 'interfaces':[{...}], 'OS': 'Linux', 'running_processes': [{}]}}
 servers_information = get_running_processes(servers_information)
+log_events(log_directory + 'script_logs.log', 'DEBUG', str(datetime.now()),
+           'servers_information\n%s' % json.dumps(servers_information, indent = 2, sort_keys = True))
 #print servers_information
 
 # Get listening ports
 servers_information = get_listening_ports(servers_information)
+log_events(log_directory + 'script_logs.log', 'DEBUG', str(datetime.now()),
+           'servers_information\n%s' % json.dumps(servers_information, indent = 2, sort_keys = True))
 #print json.dumps(servers_information, indent = 2, sort_keys = True)
 
 print('\n')
@@ -200,7 +219,8 @@ for server in servers_information.keys():
     listening_ports = {}
     running_process = []
     for each in servers_information[server]['listening_ports']:
-        #print('======== Listening Ports (%s)===================================================', % server)
+        log_events(log_directory + 'script_logs.log', 'DEBUG', str(datetime.now()),
+                   '======== Listening Ports (%s)=============' % server)
         #print json.dumps(each['details'], indent = 2, sort_keys = True)
         for port in each['details']:
             if port['actual'] is not None:
@@ -217,7 +237,8 @@ for server in servers_information.keys():
                                                        each,
                                                        listening_ports[each])
 
-    #print('======== Running Processes (%s) =================================================', % server)
+    log_events(log_directory + 'script_logs.log', 'DEBUG', str(datetime.now()),
+               '======== Running Processes (%s)=============' % server)
     for each in servers_information[server]['running_processes']:
         #print json.dumps(each, indent = 2, sort_keys = True)
         if each['process_name'] not in running_process:
