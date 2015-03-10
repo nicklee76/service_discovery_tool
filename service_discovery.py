@@ -48,6 +48,11 @@ halo_api_version = config['HALO']['Version']
 api_url = halo_api_url+halo_api_version
 ####################################
 
+####### Known process for each TCP / UDP ports ########
+known_linux_ports = config['LinuxPortsProcesses']
+
+screen_width = 120
+
 current_directory=os.path.dirname(os.path.abspath(__file__))
 log_directory=current_directory + '/logs/'
 
@@ -208,15 +213,17 @@ log_events(log_directory + 'script_logs.log', 'DEBUG', str(datetime.now()),
 servers_information = get_listening_ports(servers_information)
 log_events(log_directory + 'script_logs.log', 'DEBUG', str(datetime.now()),
            'servers_information\n%s' % json.dumps(servers_information, indent = 2, sort_keys = True))
-#print json.dumps(servers_information, indent = 2, sort_keys = True)
+print json.dumps(servers_information, indent = 2, sort_keys = True)
+
 
 print('\n')
-print('===============================================================================================================')
-print('{0:75}{1:15}{2:20}').format('Server','Listening', 'Running')
-print('{0:25}{1:40}{2:10}{3:15}{4:20}').format('Label', 'Server ID', 'OS', 'Ports', 'Process')
-print('---------------------------------------------------------------------------------------------------------------')
+print('=' * screen_width)
+print('{0:70}{1:15}{2:20}{3:30}').format('Server','Listening', 'Running', 'Known')
+print('{0:25}{1:35}{2:10}{3:15}{4:20}{5:30}{6:15}').format('Label', 'Server ID', 'OS', 'Ports', 'Process', 'Process', 'Abnormal')
+print('-' * screen_width)
 for server in servers_information.keys():
     listening_ports = {}
+    listening_ports_processes = []
     running_process = []
     for each in servers_information[server]['listening_ports']:
         log_events(log_directory + 'script_logs.log', 'DEBUG', str(datetime.now()),
@@ -225,32 +232,39 @@ for server in servers_information.keys():
         for port in each['details']:
             if port['actual'] is not None:
                 listening_ports[port['actual']] = port['bound_process']
-                if port['bound_process'] not in running_process:
-                    running_process.append(port['bound_process'])
-                else:
-                    running_process.remove(port['bound_process'])
+                if port['bound_process'] not in listening_ports_processes:
+                    listening_ports_processes.append(port['bound_process'])
     #print listening_ports
     for each in listening_ports.keys():
-        print('{0:25}{1:40}{2:10}{3:15}{4:20}').format(servers_information[server]['server_name'],
+        each_splitted = each.split('/')
+        # '22/TCP'
+        abnormal_process = "!! NO MATCH !!"
+        if listening_ports[each] in known_linux_ports[each_splitted[1]][each_splitted[0]]:
+            abnormal_process = "OK"
+        print('{0:25}{1:35}{2:10}{3:15}{4:20}{5:30}{6:15}').format(servers_information[server]['server_name'],
                                                        servers_information[server]['server_ID'],
                                                        servers_information[server]['OS'],
                                                        each,
-                                                       listening_ports[each])
+                                                       listening_ports[each],
+                                                       known_linux_ports[each_splitted[1]][each_splitted[0]],
+                                                       abnormal_process)
 
     log_events(log_directory + 'script_logs.log', 'DEBUG', str(datetime.now()),
                '======== Running Processes (%s)=============' % server)
     for each in servers_information[server]['running_processes']:
         #print json.dumps(each, indent = 2, sort_keys = True)
-        if each['process_name'] not in running_process:
+        print ('%s  %s' % (each['process_name'], running_process))
+        if each['process_name'] not in listening_ports_processes:
             running_process.append(each['process_name'])
-    #print running_process
+        print ('%s\n' % running_process)
+
     for each in running_process:
-        print('{0:25}{1:40}{2:10}{3:15}{4:20}').format(servers_information[server]['server_name'],
+        print('{0:25}{1:35}{2:10}{3:15}{4:20}').format(servers_information[server]['server_name'],
                                                        servers_information[server]['server_ID'],
                                                        servers_information[server]['OS'],
                                                        'N/A',
                                                        each)
 
-    print('-----------------------------------------------------------------------------------------------------------')
+    print('-' * screen_width)
 
 print('[CoOlNiCk] - DONE')
