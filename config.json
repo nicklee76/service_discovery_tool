@@ -4,5 +4,15 @@
     "Version":"/v1",
     "APIKeyID":"EDIT_HERE",
     "APISecretKey":"EDIT_HERE"
+  },
+  "LinuxPortsProcesses":{
+    "TCP":{
+      "22": ["sshd"],
+      "80": ["httpd"]
+    },
+    "UDP":{
+      "68": ["dhclient"],
+      "123": ["ntpd"]
+    }
   }
 }
