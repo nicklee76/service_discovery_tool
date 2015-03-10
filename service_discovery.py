@@ -51,7 +51,7 @@ api_url = halo_api_url+halo_api_version
 ####### Known process for each TCP / UDP ports ########
 known_linux_ports = config['LinuxPortsProcesses']
 
-screen_width = 120
+screen_width = 145
 
 current_directory=os.path.dirname(os.path.abspath(__file__))
 log_directory=current_directory + '/logs/'
@@ -253,10 +253,10 @@ for server in servers_information.keys():
                '======== Running Processes (%s)=============' % server)
     for each in servers_information[server]['running_processes']:
         #print json.dumps(each, indent = 2, sort_keys = True)
-        print ('%s  %s' % (each['process_name'], running_process))
+        #print ('%s  %s' % (each['process_name'], running_process))
         if each['process_name'] not in listening_ports_processes:
             running_process.append(each['process_name'])
-        print ('%s\n' % running_process)
+        #print ('%s\n' % running_process)
 
     for each in running_process:
         print('{0:25}{1:35}{2:10}{3:15}{4:20}').format(servers_information[server]['server_name'],
