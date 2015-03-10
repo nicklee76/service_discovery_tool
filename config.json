@@ -8,7 +8,9 @@
   "LinuxPortsProcesses":{
     "TCP":{
       "22": ["sshd"],
-      "80": ["httpd"]
+      "80": ["httpd", "xxxxx"],
+      "443": ["httpd"],
+      "3306": ["mysqld"]
     },
     "UDP":{
       "68": ["dhclient"],

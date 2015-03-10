@@ -239,14 +239,18 @@ for server in servers_information.keys():
         each_splitted = each.split('/')
         # '22/TCP'
         abnormal_process = "!! NO MATCH !!"
-        if listening_ports[each] in known_linux_ports[each_splitted[1]][each_splitted[0]]:
-            abnormal_process = "OK"
+        try:
+            if listening_ports[each] in known_linux_ports[each_splitted[1]][each_splitted[0]]:
+                abnormal_process = "OK"
+                known_port_process = known_linux_ports[each_splitted[1]][each_splitted[0]]
+        except:
+            known_port_process = 'Not Known Process/Port'
         print('{0:25}{1:35}{2:10}{3:15}{4:20}{5:30}{6:15}').format(servers_information[server]['server_name'],
                                                        servers_information[server]['server_ID'],
                                                        servers_information[server]['OS'],
                                                        each,
                                                        listening_ports[each],
-                                                       known_linux_ports[each_splitted[1]][each_splitted[0]],
+                                                       known_port_process,
                                                        abnormal_process)
 
     log_events(log_directory + 'script_logs.log', 'DEBUG', str(datetime.now()),
@@ -255,7 +259,8 @@ for server in servers_information.keys():
         #print json.dumps(each, indent = 2, sort_keys = True)
         #print ('%s  %s' % (each['process_name'], running_process))
         if each['process_name'] not in listening_ports_processes:
-            running_process.append(each['process_name'])
+            if each['process_name'] not in running_process:
+                running_process.append(each['process_name'])
         #print ('%s\n' % running_process)
 
     for each in running_process:
