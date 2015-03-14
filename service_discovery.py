@@ -17,7 +17,7 @@
 #   --server_group  Optional (default = 'Service_Discovery'.  Name of the HALO server group to use
 
 
-import json, base64, sys, argparse, os, time
+import json, base64, sys, argparse, os, time, logging
 from datetime import datetime
 
 try:
