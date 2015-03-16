@@ -148,26 +148,25 @@ def get_listening_ports(servers):
     server_and_request_ids = {}
 
     for each in servers.keys():
-        #POST https://api.cloudpassage.com/v1/servers/{server_id}/scans
+        # POST https://api.cloudpassage.com/v1/servers/{server_id}/scans
         request_body = {'scan': {'module':'sca'}}
         reply = halo_api_call('POST', api_url +'/servers/' + each + '/scans', data = json.dumps(request_body), headers = headers)
-        #print json.dumps(reply.json(), indent = 2, sort_keys = True)
+        # print json.dumps(reply.json(), indent = 2, sort_keys = True)
         server_and_request_ids[each] = reply.json()['command']['id']
-    #print ('Server_and_requests_IDs - %s' %server_and_request_ids)
+    # print ('Server_and_requests_IDs - %s' %server_and_request_ids)
 
     for each in server_and_request_ids.keys():
-        #GET https://api.cloudpassage.com/v1/servers/{server_id}/commands/{id}
+        # GET https://api.cloudpassage.com/v1/servers/{server_id}/commands/{id}
         scan_status = 'not_completed'
         while scan_status is not 'completed':
             reply = halo_api_call('GET', api_url + '/servers/' + each + '/commands/' + server_and_request_ids[each],
                                   data = None, headers=headers)
-            #print json.dumps(reply.json(), indent = 2, sort_keys = True)
+            # print json.dumps(reply.json(), indent = 2, sort_keys = True)
             if reply.json()['command']['status'] == 'completed':
-                #time.sleep(5)
                 scan_status = 'completed'
-                #GET https://api.cloudpassage.com/v1/servers/{server_id}/sca
+                # GET https://api.cloudpassage.com/v1/servers/{server_id}/sca
                 reply = halo_api_call('GET', api_url + '/servers/' + each + '/sca', data = None, headers = headers)
-                #print json.dumps(reply.json(), indent = 2, sort_keys = True)
+                # print json.dumps(reply.json(), indent = 2, sort_keys = True)
                 servers[each]['listening_ports'] = reply.json()['scan']['findings']
             time.sleep(5)
     return servers
@@ -218,8 +217,9 @@ print json.dumps(servers_information, indent = 2, sort_keys = True)
 
 print('\n')
 print('=' * screen_width)
-print('{0:70}{1:15}{2:20}{3:30}').format('Server','Listening', 'Running', 'Known')
-print('{0:25}{1:35}{2:10}{3:15}{4:20}{5:30}{6:15}').format('Label', 'Server ID', 'OS', 'Ports', 'Process', 'Process', 'Abnormal')
+print('{0:70}{1:15}{2:20}{3:20}{4:15}').format('Server','Listening', 'Running', 'Known', 'Match known')
+print('{0:25}{1:35}{2:10}{3:15}{4:20}{5:20}{6:15}')\
+    .format('Label', 'Server ID', 'OS', 'Ports', 'Process', 'Process', 'Process?')
 print('-' * screen_width)
 for server in servers_information.keys():
     listening_ports = {}
@@ -245,23 +245,23 @@ for server in servers_information.keys():
                 known_port_process = known_linux_ports[each_splitted[1]][each_splitted[0]]
         except:
             known_port_process = 'Not Known Process/Port'
-        print('{0:25}{1:35}{2:10}{3:15}{4:20}{5:30}{6:15}').format(servers_information[server]['server_name'],
+        print('{0:25}{1:35}{2:10}{3:15}{4:20}{5:20}{6:15}').format(servers_information[server]['server_name'],
                                                        servers_information[server]['server_ID'],
                                                        servers_information[server]['OS'],
                                                        each,
                                                        listening_ports[each],
-                                                       known_port_process,
+                                                       ', '.join(known_port_process),
                                                        abnormal_process)
 
     log_events(log_directory + 'script_logs.log', 'DEBUG', str(datetime.now()),
                '======== Running Processes (%s)=============' % server)
     for each in servers_information[server]['running_processes']:
-        #print json.dumps(each, indent = 2, sort_keys = True)
-        #print ('%s  %s' % (each['process_name'], running_process))
+        # print json.dumps(each, indent = 2, sort_keys = True)
+        # print ('%s  %s' % (each['process_name'], running_process))
         if each['process_name'] not in listening_ports_processes:
             if each['process_name'] not in running_process:
                 running_process.append(each['process_name'])
-        #print ('%s\n' % running_process)
+        # print ('%s\n' % running_process)
 
     for each in running_process:
         print('{0:25}{1:35}{2:10}{3:15}{4:20}').format(servers_information[server]['server_name'],
